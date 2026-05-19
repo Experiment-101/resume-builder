@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- ADD these lines inside <head>, after existing font links -->
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+<!-- Firebase — ADD this script block -->
+<script type="module">
+  // ── ADD THIS inside your existing Firebase module script ──
+import { getAuth, onAuthStateChanged,
+         signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const auth = getAuth(app);
+
+// If NOT logged in → send to login page
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    window.location.href = 'auth.html';
+  } else {
+    // Show user info in navbar
+    window._currentUser = user;
+    showUserInNavbar(user);
+  }
+});
+
+function showUserInNavbar(user) {
+  const navbar = document.getElementById('navbar');
+  const photo  = user.photoURL
+    ? `<img src="${user.photoURL}"
+        style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--blue)">`
+    : `<div style="width:30px;height:30px;border-radius:50%;background:var(--grad);
+        display:flex;align-items:center;justify-content:center;
+        font-weight:700;font-size:.85rem;color:#fff">
+        ${(user.displayName||user.email||'U')[0].toUpperCase()}
+       </div>`;
+
+  // Insert user section into navbar
+  const userDiv = document.createElement('div');
+  userDiv.style.cssText = 'display:flex;align-items:center;gap:10px;flex-shrink:0';
+  userDiv.innerHTML = `
+    ${photo}
+    <span style="font-size:.82rem;color:var(--muted);max-width:120px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+      ${user.displayName || user.email}
+    </span>
+    <button onclick="handleLogout()"
+      style="padding:6px 14px;background:transparent;border:1px solid var(--border2);
+      border-radius:7px;color:var(--muted);font-family:var(--font-body);
+      font-size:.78rem;cursor:pointer">
+      <i class="fa fa-sign-out-alt"></i> Logout
+    </button>`;
+  navbar.appendChild(userDiv);
+}
+
+// ── LOGOUT ──
+window.handleLogout = async function() {
+  await signOut(auth);
+  window.location.href = 'auth.html';
+};
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, runTransaction, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // 🔥 Replace with YOUR Firebase config from console.firebase.google.com
+  const firebaseConfig = {
+    apiKey: "REPLACE_WITH_YOUR_API_KEY",
+    authDomain: "REPLACE.firebaseapp.com",
+    databaseURL: "https://REPLACE-default-rtdb.firebaseio.com",
+    projectId: "REPLACE",
+    storageBucket: "REPLACE.appspot.com",
+    messagingSenderId: "REPLACE",
+    appId: "REPLACE"
+  };
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+
+    // Count every visitor
+    runTransaction(ref(db,'stats/visitors'), n => (n||0)+1);
+
+    // Live listener — updates counters on screen in real time
+    onValue(ref(db,'stats'), snap => {
+      const d = snap.val() || {};
+      animNum('nav-visitors', d.visitors || 0);
+      animNum('h-visitors',   d.visitors || 0);
+      animNum('nav-resumes',  d.resumes  || 0);
+      animNum('h-resumes',    d.resumes  || 0);
+    });
+
+    window._firebaseDB  = db;
+    window._firebaseRef = ref;
+    window._useFirebase = true;
+  } catch(e) {
+    console.warn('Firebase not set up. Using localStorage.');
+    window._useFirebase = false;
+  }
+
+  function animNum(id, target) {
+    const el = document.getElementById(id); if(!el) return;
+    let n = 0; const step = Math.max(1, Math.floor(target/50));
+    const t = setInterval(()=>{ n=Math.min(n+step,target); el.textContent=n.toLocaleString(); if(n>=target)clearInterval(t); }, 25);
+  }
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ResumeAI Pro – Build ATS-Friendly Resumes with AI</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar" id="navbar">
+  <div class="nav-brand">
+    <span class="brand-icon">⚡</span>
+    <span>Resume<b>AI</b> Pro</span>
+  </div>
+  <div class="nav-stats">
+    <div class="stat-badge"><i class="fa fa-eye"></i> <span id="nav-visitors">0</span> Visitors</div>
+    <div class="stat-badge green"><i class="fa fa-file-alt"></i> <span id="nav-resumes">0</span> Resumes Created</div>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-outline" onclick="scrollToBuilder()">Build Resume</button>
+    <a href="https://github.com" class="btn-ghost" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="grid-overlay"></div>
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-badge">✦ AI-Powered Resume Builder</div>
+    <h1 class="hero-title">
+      Build Resumes That<br/>
+      <span class="gradient-text">Beat ATS & Get Hired</span>
+    </h1>
+    <p class="hero-sub">Generate professional, ATS-optimised resumes in minutes using AI. Real-time scoring, smart suggestions, and beautiful templates included.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" onclick="scrollToBuilder()">
+        <span>Build My Resume</span> <i class="fa fa-arrow-right"></i>
+      </button>
+      <button class="btn-ghost-lg" onclick="showDemo()">Watch Demo</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><span class="hnum" id="h-visitors">0</span><span>Total Visitors</span></div>
+      <div class="hdivider"></div>
+      <div class="hstat"><span class="hnum" id="h-resumes">0</span><span>Resumes Built</span></div>
+      <div class="hdivider"></div>
+      <div class="hstat"><span class="hnum">100%</span><span>ATS Friendly</span></div>
+    </div>
+  </div>
+  <div class="hero-preview">
+    <div class="preview-card">
+      <div class="ats-badge">
+        <div class="ats-ring" id="hero-ats-ring">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" class="ring-bg"/>
+            <circle cx="50" cy="50" r="40" class="ring-fill" id="hero-ring-fill"/>
+          </svg>
+          <span class="ats-num" id="hero-ats-num">92</span>
+        </div>
+        <p>ATS Score</p>
+      </div>
+      <div class="mini-resume">
+        <div class="mr-header"></div>
+        <div class="mr-line w80"></div>
+        <div class="mr-line w60"></div>
+        <div class="mr-divider"></div>
+        <div class="mr-line w90"></div>
+        <div class="mr-line w70"></div>
+        <div class="mr-line w50"></div>
+        <div class="mr-divider"></div>
+        <div class="mr-tags">
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section class="features">
+  <div class="section-label">Why ResumeAI Pro</div>
+  <h2 class="section-title">Everything you need to land the job</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="fc-icon blue"><i class="fa fa-robot"></i></div>
+      <h3>AI Content Generator</h3>
+      <p>Describe your experience, let AI craft professional bullet points, summaries and skills tailored to your target role.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon green"><i class="fa fa-chart-bar"></i></div>
+      <h3>Real-Time ATS Score</h3>
+      <p>Instant scoring against Applicant Tracking Systems. Know exactly how your resume performs before you apply.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon purple"><i class="fa fa-magic"></i></div>
+      <h3>Smart Templates</h3>
+      <p>Professionally designed, ATS-tested templates that look stunning and parse perfectly through any system.</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon orange"><i class="fa fa-download"></i></div>
+      <h3>One-Click Export</h3>
+      <p>Download as a pixel-perfect PDF instantly. Ready to send to any employer or upload to any job portal.</p>
+    </div>
+  </div>
+</section>
+<!-- ===== 6 AI FEATURES SHOWCASE ===== -->
+<section class="ai-showcase">
+  <div class="section-label">6 AI Superpowers</div>
+  <h2 class="section-title">AI Tools That Give You an Edge</h2>
+  <div class="ai-cards-grid">
+
+    <div class="ai-feat-card c-blue" onclick="openAIPanel('summary')">
+      <div class="afc-icon blue"><i class="fa fa-pen-fancy"></i></div>
+      <h3>AI Summary Writer</h3>
+      <p>Generate a powerful professional summary tailored to your role. Beats 95% of manually written ones.</p>
+      <span class="afc-try">Try it <i class="fa fa-arrow-right"></i></span>
+    </div>
+
+    <div class="ai-feat-card c-green" onclick="openAIPanel('jd')">
+      <div class="afc-icon green"><i class="fa fa-bullseye"></i></div>
+      <h3>Job Description Matcher</h3>
+      <p>Paste any job description. Get a match score, missing keywords, and exactly what to fix.</p>
+      <span class="afc-try">Try it <i class="fa fa-arrow-right"></i></span>
+    </div>
+
+    <div class="ai-feat-card c-purple" onclick="openAIPanel('cover')">
+      <div class="afc-icon purple"><i class="fa fa-envelope-open-text"></i></div>
+      <h3>Cover Letter Generator</h3>
+      <p>AI writes a personalised cover letter using your resume data and target job in seconds.</p>
+      <span class="afc-try">Try it <i class="fa fa-arrow-right"></i></span>
+    </div>
+
+    <div class="ai-feat-card c-pink" onclick="openAIPanel('interview')">
+      <div class="afc-icon pink"><i class="fa fa-comments"></i></div>
+      <h3>Interview Prep AI</h3>
+      <p>Generates likely interview questions from YOUR resume with answer strategy tips.</p>
+      <span class="afc-try">Try it <i class="fa fa-arrow-right"></i></span>
+    </div>
+
+    <div class="ai-feat-card c-orange" onclick="openAIPanel('roast')">
+      <div class="afc-icon orange"><i class="fa fa-fire"></i></div>
+      <h3>Resume Roast 🔥</h3>
+      <p>Brutally honest AI feedback. Weak points, filler phrases, and specific improvements.</p>
+      <span class="afc-try">Try it <i class="fa fa-arrow-right"></i></span>
+    </div>
+
+    <div class="ai-feat-card c-cyan" onclick="openAIPanel('linkedin')">
+      <div class="afc-icon cyan"><i class="fab fa-linkedin"></i></div>
+      <h3>LinkedIn Optimizer</h3>
+      <p>AI rewrites your headline and About section for maximum recruiter visibility.</p>
+      <span class="afc-try">Try it <i class="fa fa-arrow-right"></i></span>
+    </div>
+    <!-- ADD this card in .ai-cards-grid -->
+<div class="ai-feat-card c-green" onclick="openAIPanel('company')"
+  style="grid-column: 1 / -1; background: linear-gradient(135deg, var(--card), rgba(52,211,153,0.05)); border-color: rgba(52,211,153,0.2);">
+  <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap">
+    <div class="afc-icon green" style="width:60px;height:60px;font-size:1.4rem;flex-shrink:0">
+      <i class="fa fa-building"></i>
+    </div>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h3 style="font-size:1.1rem">🏢 Company Intelligence AI</h3>
+        <span style="padding:2px 10px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:20px;font-size:.72rem;color:var(--green);font-weight:700">NEW ✦ FEATURED</span>
+      </div>
+      <p style="color:var(--muted);font-size:.88rem;max-width:600px">
+        Enter any company → AI fetches their tech stack & requirements → Upload your resume PDF → Get personalized skill gap analysis, project recommendations, and required programming languages.
+      </p>
+    </div>
+    <span class="afc-try" style="color:var(--green);flex-shrink:0">
+      Try it <i class="fa fa-arrow-right"></i>
+    </span>
+  </div>
+</div>
+
+  </div>
+</section>
+
+<!-- ===== BUILDER ===== -->
+<section class="builder-section" id="builder">
+  <div class="builder-header">
+    <div class="section-label">Resume Builder</div>
+    <h2 class="section-title">Fill in your details below</h2>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-bar-wrap">
+    <div class="progress-steps">
+      <div class="ps active" data-step="1"><span>1</span> Personal</div>
+      <div class="ps" data-step="2"><span>2</span> Experience</div>
+      <div class="ps" data-step="3"><span>3</span> Education</div>
+      <div class="ps" data-step="4"><span>4</span> Skills</div>
+      <div class="ps" data-step="5"><span>5</span> Extras</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:20%"></div>
+    </div>
+  </div>
+
+  <div class="builder-body">
+
+    <!-- LEFT: FORM PANEL -->
+    <div class="form-panel">
+
+      <!-- STEP 1: Personal Info -->
+      <div class="step active" id="step-1">
+        <div class="step-header"><i class="fa fa-user"></i> Personal Information</div>
+        <div class="form-grid">
+          <div class="field full">
+            <label>Full Name *</label>
+            <input type="text" id="fullName" placeholder="e.g. Arjun Sharma" oninput="updatePreview()" />
+          </div>
+          <div class="field">
+            <label>Date of Birth</label>
+            <input type="date" id="dob" oninput="updatePreview()" />
+          </div>
+          <div class="field">
+            <label>Nationality</label>
+            <input type="text" id="nationality" placeholder="e.g. Indian" oninput="updatePreview()" />
+          </div>
+          <div class="field">
+            <label>Email Address *</label>
+            <input type="email" id="email" placeholder="arjun@email.com" oninput="updatePreview()" />
+          </div>
+          <div class="field">
+            <label>Contact Number *</label>
+            <input type="tel" id="phone" placeholder="+91 9876543210" oninput="updatePreview()" />
+          </div>
+          <div class="field">
+            <label>LinkedIn URL</label>
+            <input type="url" id="linkedin" placeholder="linkedin.com/in/arjun" oninput="updatePreview()" />
+          </div>
+          <div class="field">
+            <label>GitHub / Portfolio</label>
+            <input type="url" id="github" placeholder="github.com/arjun" oninput="updatePreview()" />
+          </div>
+          <div class="field full">
+            <label>City, State, Country</label>
+            <input type="text" id="location" placeholder="Mumbai, Maharashtra, India" oninput="updatePreview()" />
+          </div>
+          <div class="field full">
+            <label>Professional Title</label>
+            <input type="text" id="jobTitle" placeholder="e.g. Full Stack Developer | 3 Years Experience" oninput="updatePreview()" />
+          </div>
+          <div class="field full">
+            <label>Professional Summary</label>
+            <textarea id="summary" rows="4" placeholder="Write a brief summary about yourself..." oninput="updatePreview()"></textarea>
+            <button class="ai-btn" onclick="aiGenerate('summary')"><i class="fa fa-robot"></i> AI Generate Summary</button>
+          </div>
+        </div>
+        <div class="step-actions">
+          <button class="btn-next" onclick="nextStep(2)">Next: Experience <i class="fa fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Work Experience -->
+      <div class="step" id="step-2">
+        <div class="step-header"><i class="fa fa-briefcase"></i> Work Experience</div>
+        <div id="exp-list"></div>
+        <button class="btn-add" onclick="addExperience()"><i class="fa fa-plus"></i> Add Experience</button>
+        <div class="step-actions">
+          <button class="btn-back" onclick="nextStep(1)"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn-next" onclick="nextStep(3)">Next: Education <i class="fa fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Education -->
+      <div class="step" id="step-3">
+        <div class="step-header"><i class="fa fa-graduation-cap"></i> Education</div>
+        <div id="edu-list"></div>
+        <button class="btn-add" onclick="addEducation()"><i class="fa fa-plus"></i> Add Education</button>
+        <div class="step-actions">
+          <!-- ADD inside education entry form grid -->
+<!-- After the Grade/CGPA field -->
+
+<div class="field full">
+  <label>
+    <i class="fa fa-link"
+      style="color:var(--blue)">
+    </i>
+    Marksheet / Certificate Drive Link
+  </label>
+  <div style="position:relative">
+    <input type="url"
+      placeholder="https://drive.google.com/file/d/..."
+      oninput="liveUpdate()"
+      data-edu="${id}"
+      data-f="drivelink"
+      style="padding-right:90px"/>
+    <button type="button"
+      onclick="testDriveLink(this)"
+      style="position:absolute;right:6px;
+      top:50%;transform:translateY(-50%);
+      padding:4px 10px;
+      background:rgba(79,142,247,.15);
+      border:1px solid rgba(79,142,247,.3);
+      border-radius:6px;color:var(--blue);
+      font-size:.72rem;font-weight:700;
+      cursor:pointer;white-space:nowrap">
+      Test Link
+    </button>
+  </div>
+  <div class="drive-hint">
+    <i class="fa fa-info-circle"></i>
+    Upload to Google Drive → Right click →
+    Share → Anyone with link can view →
+    Copy link → Paste here
+  </div>
+</div>
+          <button class="btn-back" onclick="nextStep(2)"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn-next" onclick="nextStep(4)">Next: Skills <i class="fa fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Skills -->
+      <div class="step" id="step-4">
+        <div class="step-header"><i class="fa fa-code"></i> Technical Skills & Expertise</div>
+        <div class="field full">
+          <label>Programming Languages</label>
+          <input type="text" id="prog-langs" placeholder="Python, JavaScript, Java, C++" oninput="updatePreview()" />
+        </div>
+        <div class="field full">
+          <label>Frameworks & Libraries</label>
+          <input type="text" id="frameworks" placeholder="React, Node.js, Django, Spring Boot" oninput="updatePreview()" />
+        </div>
+        <div class="field full">
+          <label>Tools & Technologies</label>
+          <input type="text" id="tools" placeholder="Git, Docker, AWS, Kubernetes, Figma" oninput="updatePreview()" />
+        </div>
+        <div class="field full">
+          <label>Databases</label>
+          <input type="text" id="databases" placeholder="MySQL, MongoDB, PostgreSQL, Redis" oninput="updatePreview()" />
+        </div>
+        <div class="field full">
+          <label>Soft Skills</label>
+          <input type="text" id="soft-skills" placeholder="Leadership, Communication, Problem Solving" oninput="updatePreview()" />
+        </div>
+        <div class="field full">
+          <label>Languages Known</label>
+          <input type="text" id="languages" placeholder="English (Fluent), Hindi (Native), French (Basic)" oninput="updatePreview()" />
+        </div>
+        <button class="ai-btn" onclick="aiGenerate('skills')"><i class="fa fa-robot"></i> AI Suggest Skills</button>
+        <div class="step-actions">
+          <button class="btn-back" onclick="nextStep(3)"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn-next" onclick="nextStep(5)">Next: Extras <i class="fa fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <!-- STEP 5: Extras -->
+      <div class="step" id="step-5">
+        <div class="step-header"><i class="fa fa-star"></i> Achievements, Projects & Certificates</div>
+
+        <div class="sub-section">
+          <div class="sub-label"><i class="fa fa-trophy"></i> Key Achievements</div>
+          <div id="ach-list"></div>
+          <button class="btn-add sm" onclick="addAchievement()"><i class="fa fa-plus"></i> Add Achievement</button>
+        </div>
+
+        <div class="sub-section">
+          <div class="sub-label"><i class="fa fa-project-diagram"></i> Projects</div>
+          <div id="proj-list"></div>
+          <button class="btn-add sm" onclick="addProject()"><i class="fa fa-plus"></i> Add Project</button>
+        </div>
+
+        <div class="sub-section">
+          <div class="sub-label"><i class="fa fa-certificate"></i> Certifications</div>
+          <div id="cert-list"></div>
+          <button class="btn-add sm" onclick="addCertificate()"><i class="fa fa-plus"></i> Add Certificate</button>
+        </div>
+
+        <div class="sub-section">
+          <div class="sub-label"><i class="fa fa-heart"></i> Hobbies & Interests</div>
+          <input type="text" id="hobbies" placeholder="Reading, Open Source, Competitive Coding, Chess"
+            oninput="updatePreview()" style="width:100%;margin-top:8px" />
+        </div>
+
+        <button class="ai-btn" onclick="aiGenerate('all')"><i class="fa fa-robot"></i> AI Polish Entire Resume</button>
+
+        <div class="step-actions">
+          <button class="btn-back" onclick="nextStep(4)"><i class="fa fa-arrow-left"></i> Back</button>
+          <button class="btn-primary generate-btn" onclick="generateResume()">
+            <i class="fa fa-magic"></i> Generate & Download PDF
+          </button>
+        </div>
+      </div>
+
+    </div><!-- end form-panel -->
+
+    <!-- RIGHT: PREVIEW PANEL -->
+    <div class="preview-panel">
+      <div class="preview-toolbar">
+        <span class="preview-label">Live Preview</span>
+        <div class="preview-tools">
+          <button class="tool-btn" onclick="changeTemplate('modern')" id="tmpl-modern">Modern</button>
+          <button class="tool-btn active" onclick="changeTemplate('clean')" id="tmpl-clean">Clean</button>
+          <button class="tool-btn" onclick="changeTemplate('bold')" id="tmpl-bold">Bold</button>
+        </div>
+        <div class="ats-indicator">
+          <span>ATS</span>
+          <div class="ats-bar">
+            <div class="ats-bar-fill" id="ats-bar-fill" style="width:0%"></div>
+          </div>
+          <span class="ats-score-label" id="ats-score-label">0%</span>
+        </div>
+      </div>
+
+      <div class="resume-preview" id="resumePreview">
+        <div class="resume-wrapper" id="resumeWrapper">
+          <div class="rp-placeholder">
+            <i class="fa fa-file-alt"></i>
+            <p>Your resume preview will appear here as you fill in your details.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ATS Breakdown -->
+      <div class="ats-breakdown" id="atsBreakdown" style="display:none">
+        <div class="ats-title"><i class="fa fa-chart-bar"></i> ATS Score Breakdown</div>
+        <div class="ats-items" id="atsItems"></div>
+      </div>
+
+      <div class="preview-actions">
+        <!-- ADD these inside existing .preview-actions div -->
+<button class="btn-outline sm" onclick="openAIPanel('jd')"><i class="fa fa-bullseye"></i> Job Match</button>
+<button class="btn-outline sm" onclick="openAIPanel('roast')"><i class="fa fa-fire"></i> Roast</button>
+        <button class="btn-primary" onclick="downloadPDF()"><i class="fa fa-download"></i> Download PDF</button>
+        <button class="btn-outline sm" onclick="copyToClipboard()"><i class="fa fa-copy"></i> Copy Text</button>
+      </div>
+    </div><!-- end preview-panel -->
+
+  </div><!-- end builder-body -->
+</section>
+
+<!-- ===== AI MODAL ===== -->
+<div class="modal-overlay" id="aiModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa fa-robot"></i> AI Resume Assistant</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="ai-thinking" id="aiThinking">
+        <div class="ai-dots"><span></span><span></span><span></span></div>
+        <p>AI is crafting your content...</p>
+      </div>
+      <div class="ai-result" id="aiResult" style="display:none">
+        <div class="ai-output" id="aiOutput"></div>
+        <button class="btn-primary" onclick="applyAiResult()">Apply to Resume</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+<!-- ===== OVERLAY ===== -->
+<div class="ai-overlay" id="aiOverlay" onclick="closeAIPanel()"></div>
+
+<!-- ===== AI PANEL (Right Side Drawer) ===== -->
+<div class="ai-drawer" id="aiDrawer">
+  <div class="aid-header">
+    <div class="aid-title"><i class="fa fa-robot"></i> <span id="drawerTitle">AI Assistant</span></div>
+    <button class="aid-close" onclick="closeAIPanel()">×</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="aid-tabs">
+    <div class="aid-tab active" id="dtab-summary"  onclick="switchAITab('summary')">✍ Summary</div>
+    <div class="aid-tab"        id="dtab-jd"        onclick="switchAITab('jd')">🎯 Job Match</div>
+    <div class="aid-tab"        id="dtab-cover"     onclick="switchAITab('cover')">✉ Cover Letter</div>
+    <div class="aid-tab"        id="dtab-interview" onclick="switchAITab('interview')">💬 Interview</div>
+    <div class="aid-tab"        id="dtab-roast"     onclick="switchAITab('roast')">🔥 Roast</div>
+    <div class="aid-tab"        id="dtab-linkedin"  onclick="switchAITab('linkedin')">💼 LinkedIn</div>
+  </div>
+
+  <!-- Body -->
+  <div class="aid-body">
+    <!-- COMPANY INTELLIGENCE SECTION -->
+<div class="aid-sec" id="dsec-company">
+
+  <!-- STEP 1: Company Name -->
+  <div class="company-step" id="cstep-1">
+    <div class="cstep-badge">Step 1 of 3</div>
+    <label class="aid-label">Which Company Are You Applying To?</label>
+    <input type="text" id="company-name" class="aid-input"
+      placeholder="e.g. Google, Infosys, TCS, Wipro, Amazon, Startup XYZ"/>
+
+    <label class="aid-label">Job Role You Want</label>
+    <input type="text" id="company-role" class="aid-input"
+      placeholder="e.g. Software Engineer, Data Scientist, Frontend Dev"/>
+
+    <label class="aid-label">Experience Level</label>
+    <select id="company-level" class="aid-input">
+      <option>Fresher / 0-1 year</option>
+      <option>Junior (1-3 years)</option>
+      <option>Mid Level (3-5 years)</option>
+      <option>Senior (5+ years)</option>
+    </select>
+
+    <button class="aid-run" onclick="companyStep1()">
+      <i class="fa fa-search"></i> Search Company Requirements
+    </button>
+  </div>
+
+  <!-- STEP 2: Upload Resume PDF -->
+  <div class="company-step" id="cstep-2" style="display:none">
+    <div class="cstep-badge">Step 2 of 3</div>
+    <div class="company-found" id="company-found-box"></div>
+
+    <label class="aid-label">Upload Your Current Resume PDF</label>
+    <div class="pdf-upload-area" id="pdfUploadArea" onclick="document.getElementById('resumePDF').click()">
+      <i class="fa fa-file-pdf"></i>
+      <p>Click to upload your Resume PDF</p>
+      <span>or drag and drop here</span>
+    </div>
+    <input type="file" id="resumePDF" accept=".pdf" style="display:none" onchange="handlePDFUpload(event)"/>
+    <div class="pdf-status" id="pdfStatus" style="display:none">
+      <i class="fa fa-check-circle"></i> <span id="pdfFileName"></span>
+    </div>
+
+    <button class="aid-run" id="analyseBtn" onclick="companyStep2()" style="display:none">
+      <i class="fa fa-robot"></i> Analyse My Resume vs Company
+    </button>
+
+    <button class="btn-skip" onclick="companyStep2WithoutPDF()">
+      Skip PDF — Analyse from form data only
+    </button>
+  </div>
+
+  <!-- STEP 3: Results -->
+  <div class="company-step" id="cstep-3" style="display:none">
+    <div class="cstep-badge">Step 3 of 3 — Your Personalized Report</div>
+
+    <div class="aid-thinking" id="dt-company">
+      <div class="aid-dots"><span></span><span></span><span></span></div>
+      <p id="company-think-msg">Analysing company requirements...</p>
+    </div>
+
+    <!-- Results tabs -->
+    <div class="result-tabs" id="resultTabs" style="display:none">
+      <button class="rtab active" id="rt-req"   onclick="showResultTab('req')">📋 Requirements</button>
+      <button class="rtab"        id="rt-gap"   onclick="showResultTab('gap')">⚠️ Skill Gaps</button>
+      <button class="rtab"        id="rt-proj"  onclick="showResultTab('proj')">🚀 Projects</button>
+      <button class="rtab"        id="rt-langs" onclick="showResultTab('langs')">💻 Languages</button>
+    </div>
+
+    <!-- Requirements -->
+    <div class="result-panel active" id="rp-req">
+      <div class="aid-output" id="do-req"></div>
+    </div>
+
+    <!-- Skill Gaps -->
+    <div class="result-panel" id="rp-gap">
+      <div class="gap-score-wrap" id="gapScoreWrap"></div>
+      <div class="aid-output" id="do-gap"></div>
+    </div>
+
+    <!-- Project Suggestions -->
+    <div class="result-panel" id="rp-proj">
+      <div class="aid-output" id="do-proj"></div>
+    </div>
+
+    <!-- Language Requirements -->
+    <div class="result-panel" id="rp-langs">
+      <div class="lang-tags" id="langTags"></div>
+      <div class="aid-output" id="do-langs"></div>
+    </div>
+
+    <div class="result-actions" id="resultActions" style="display:none">
+      <button class="aid-apply" onclick="applyCompanySuggestions()">
+        <i class="fa fa-magic"></i> Auto-Fill Skills in Resume
+      </button>
+      <button class="aid-apply" style="background:var(--grad2)"
+        onclick="downloadCompanyReport()">
+        <i class="fa fa-download"></i> Download Full Report
+      </button>
+      <button class="btn-skip" onclick="resetCompanyTool()">
+        <i class="fa fa-redo"></i> Try Another Company
+      </button>
+    </div>
+  </div>
+
+</div><!-- /dsec-company -->
+
+    <!-- SUMMARY -->
+    <div class="aid-sec active" id="dsec-summary">
+      <label class="aid-label">Target Role</label>
+      <input type="text" id="ai-role" class="aid-input" placeholder="e.g. Full Stack Developer at Google"/>
+      <label class="aid-label">Years of Experience</label>
+      <input type="text" id="ai-yoe" class="aid-input" placeholder="e.g. 2 years"/>
+      <label class="aid-label">Key Skills (optional)</label>
+      <textarea id="ai-skills-hint" class="aid-input" rows="3" placeholder="React, Node.js, Python..."></textarea>
+      <button class="aid-run" onclick="runAITool('summary')"><i class="fa fa-magic"></i> Generate Summary</button>
+      <div class="aid-thinking" id="dt-summary"><div class="aid-dots"><span></span><span></span><span></span></div><p>Writing your summary...</p></div>
+      <div class="aid-result" id="dr-summary">
+        <div class="aid-output" id="do-summary"></div>
+        <button class="aid-apply" onclick="applyAIResult('summary')"><i class="fa fa-check"></i> Apply to Resume</button>
+      </div>
+    </div>
+
+    <!-- JOB MATCH -->
+    <div class="aid-sec" id="dsec-jd">
+      <label class="aid-label">Paste Job Description</label>
+      <textarea id="jd-paste" class="aid-input" rows="10" placeholder="Paste the full job description here...&#10;&#10;AI will:&#10;• Calculate your match %&#10;• Find missing keywords&#10;• Tell you what to add"></textarea>
+      <button class="aid-run" onclick="runAITool('jd')"><i class="fa fa-bullseye"></i> Analyse Match</button>
+      <div class="aid-thinking" id="dt-jd"><div class="aid-dots"><span></span><span></span><span></span></div><p>Scanning job requirements...</p></div>
+      <div class="aid-result" id="dr-jd">
+        <div id="jd-score-ui"></div>
+        <div class="aid-output" id="do-jd" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- COVER LETTER -->
+    <div class="aid-sec" id="dsec-cover">
+      <label class="aid-label">Company Name</label>
+      <input type="text" id="cl-company" class="aid-input" placeholder="e.g. Google, Infosys"/>
+      <label class="aid-label">Role Applying For</label>
+      <input type="text" id="cl-role" class="aid-input" placeholder="e.g. Backend Engineer"/>
+      <label class="aid-label">Anything specific to mention?</label>
+      <textarea id="cl-extra" class="aid-input" rows="3" placeholder="I admire their open-source culture..."></textarea>
+      <button class="aid-run" onclick="runAITool('cover')"><i class="fa fa-envelope"></i> Write Cover Letter</button>
+      <div class="aid-thinking" id="dt-cover"><div class="aid-dots"><span></span><span></span><span></span></div><p>Writing your cover letter...</p></div>
+      <div class="aid-result" id="dr-cover">
+        <div class="aid-output" id="do-cover"></div>
+        <button class="aid-apply" onclick="copyAIResult('cover')"><i class="fa fa-copy"></i> Copy Cover Letter</button>
+      </div>
+    </div>
+
+    <!-- INTERVIEW -->
+    <div class="aid-sec" id="dsec-interview">
+      <label class="aid-label">Target Role</label>
+      <input type="text" id="int-role" class="aid-input" placeholder="e.g. Software Engineer"/>
+      <label class="aid-label">Interview Type</label>
+      <select id="int-type" class="aid-input">
+        <option>Technical</option>
+        <option>HR / Behavioral</option>
+        <option>System Design</option>
+        <option>Both Technical & HR</option>
+      </select>
+      <label class="aid-label">Level</label>
+      <select id="int-level" class="aid-input">
+        <option>Fresher / Entry Level</option>
+        <option>Mid Level (2-5 years)</option>
+        <option>Senior (5+ years)</option>
+      </select>
+      <button class="aid-run" onclick="runAITool('interview')"><i class="fa fa-comments"></i> Generate Questions</button>
+      <div class="aid-thinking" id="dt-interview"><div class="aid-dots"><span></span><span></span><span></span></div><p>Preparing questions...</p></div>
+      <div class="aid-result" id="dr-interview">
+        <div class="aid-output" id="do-interview"></div>
+        <button class="aid-apply" onclick="copyAIResult('interview')"><i class="fa fa-copy"></i> Copy Questions</button>
+      </div>
+    </div>
+
+    <!-- ROAST -->
+    <div class="aid-sec" id="dsec-roast">
+      <div class="roast-warn">🔥 AI gives brutally honest feedback. Fill resume details first, then click Roast!</div>
+      <label class="aid-label">Target Role (optional)</label>
+      <input type="text" id="roast-role" class="aid-input" placeholder="e.g. Frontend Developer"/>
+      <button class="aid-run roast-btn" onclick="runAITool('roast')"><i class="fa fa-fire"></i> Roast My Resume</button>
+      <div class="aid-thinking" id="dt-roast"><div class="aid-dots"><span></span><span></span><span></span></div><p>AI is judging your resume...</p></div>
+      <div class="aid-result" id="dr-roast">
+        <div class="aid-output" id="do-roast"></div>
+      </div>
+    </div>
+
+    <!-- LINKEDIN -->
+    <div class="aid-sec" id="dsec-linkedin">
+      <label class="aid-label">Target Industry</label>
+      <input type="text" id="li-industry" class="aid-input" placeholder="e.g. Tech startups, FAANG"/>
+      <label class="aid-label">Your Goal</label>
+      <select id="li-goal" class="aid-input">
+        <option>Get recruiter attention</option>
+        <option>Find remote jobs</option>
+        <option>Build professional network</option>
+        <option>Showcase expertise</option>
+      </select>
+      <button class="aid-run linkedin-btn" onclick="runAITool('linkedin')"><i class="fab fa-linkedin"></i> Optimise LinkedIn</button>
+      <div class="aid-thinking" id="dt-linkedin"><div class="aid-dots"><span></span><span></span><span></span></div><p>Optimising your LinkedIn...</p></div>
+      <div class="aid-result" id="dr-linkedin">
+        <div class="aid-output" id="do-linkedin"></div>
+        <button class="aid-apply" onclick="copyAIResult('linkedin')"><i class="fa fa-copy"></i> Copy Content</button>
+      </div>
+    </div>
+    <!-- ===== COMPANY INTELLIGENCE TAB ===== -->
+<div class="aid-tab" id="dtab-company" onclick="switchAITab('company')">
+  🏢 Company AI
+</div>
+
+  </div><!-- /aid-body -->
+</div><!-- /ai-drawer -->
+</body>
+</html>
